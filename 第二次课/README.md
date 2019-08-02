@@ -246,11 +246,13 @@ transition-timing-function: linear | ease-in | ease-out | cubic-bezier;
 
 #### animation
 - 基本使用
+```
 @keyframes rainbow {
   0% { background: #c00; }
   50% { background: orange; }
   100% { background: yellowgreen; }
 }
+```
 
 - 结束状态
 animation-fill-mode
