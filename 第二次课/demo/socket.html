@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>document</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+    <input type="text" class="text">
+    <input type="button" class="send" value="发送">
+</body>
+<script type="text/javascript">
+    const text = document.querySelector('.text')
+    const send = document.querySelector('.send')
+    const ws = new WebSocket('ws://localhost:8000')
+
+    function sendText() {
+        const str = text.value
+        ws.send(str)
+        text.value = ''
+    }
+    send.addEventListener('click', sendText)
+
+    ws.onopen = function () {
+        console.log('WebSocket连接中')
+        ws.addEventListener('message', function (message) {
+            console.log(message)
+        })
+    }
+    ws.onclose = function () {
+        console.log('WebSocket已关闭')
+    }
+    ws.onerror = function () {
+        console.log('连接出错')
+    }
+</script>
+
+</html>
