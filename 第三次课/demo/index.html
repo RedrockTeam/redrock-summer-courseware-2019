@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+
+</body>
+
+<script type="module">
+    //封装Ajax
+    function ajax(url, cb) {
+        try {
+            const xhr = new XMLHttpRequest()
+            xhr.open('GET', url)
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    const data = JSON.parse(xhr.responseText)
+                    cb(null, data)
+                }
+            }
+            xhr.send()
+        } catch (err) {
+            cb(err)
+        }
+    }
+
+    //Promise改写Ajax
+    function request(url) {
+        return new Promise(function (resolve, reject) {
+            try {
+                const xhr = new XMLHttpRequest()
+                xhr.open('GET', url)
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        const data = JSON.parse(xhr.responseText)
+                        resolve(data)
+                    }
+                }
+                xhr.send()
+            } catch (err) {
+                reject(err)
+            }
+        })
+
+    }
+    // Promise + Ajax
+    request(url)
+        .then(res => {
+            console.log(res)
+        })
+        .catch(err => {
+            console.log(err)
+        })
+
+    //生成器 + Ajax
+    function foo(url) {
+        ajax(key, function (err, data) {
+            if (err) {
+                it.throw(err)
+            } else {
+                it.next(data)
+            }
+        })
+    }
+
+    function* main() {
+        try {
+            const text = yield foo(url)
+            console.log(text)
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
+    const it = main()
+    it.next()
+
+    // Promise + 生成器 + Ajax
+    function foo(url) {
+        return request(url)
+    }
+
+    function* main() {
+        try {
+            const text = yield foo(url)
+            console.log(text)
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
+    const it = main()
+    const p = it.next().value
+    p
+        .then(data => {
+            it.next(data)
+        })
+        .catch(err => {
+            it.throw(err)
+        })
+</script>
+
+</html>
