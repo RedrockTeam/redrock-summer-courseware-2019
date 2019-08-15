@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <title>课件</title>
+    <link rel="stylesheet" href="./css/reveal.css" />
+    <link rel="stylesheet" href="./css/theme/black.css" id="theme" />
+    <link rel="stylesheet" href="./css/highlight/zenburn.css" />
+    <link rel="stylesheet" href="./css/print/paper.css" type="text/css" media="print" />
+
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides"><section  data-markdown><script type="text/template">
+# Node.js基础
+
+- Node.js 是一个基于 Chrome V8 引擎的 JavaScript 运行环境。  <!-- .element: class="fragment" --> 
+- Node.js 使用了一个事件驱动、非阻塞式 I/O 的模型，使其轻量又高效  <!-- .element: class="fragment" -->
+</script></section><section ><section data-markdown><script type="text/template">
+### Node的架构
+
+![image](./imgs/Node架构.jpg)
+
+</script></section><section data-markdown><script type="text/template">
+
+- 内建模块
+- 社区模块/用户自定义模块
+
+</script></section></section><section ><section data-markdown><script type="text/template">
+
+## Node中模块
+
+</script></section><section data-markdown><script type="text/template">
+
+- 遵循CommonJS的模块规范
+    * 文件既模块 <!-- .element: class="fragment" -->
+    * require('fs') <!-- .element: class="fragment" -->
+    * module.exports = {...} <!-- .element: class="fragment" -->
+    * 缓存 <!-- .element: class="fragment" -->
+    * 同步的 <!-- .element: class="fragment" -->  
+- 寻找模块 <!-- .element: class="fragment" -->
+    * 内建模块 例如: require('http') <!-- .element: class="fragment" -->
+    * 项目模块 例如: require('./src') require('./src/index.js'') <!-- .element: class="fragment" -->
+    * 第三方模块 位于node_modules, package.json  <!-- .element: class="fragment" -->
+     
+</script></section></section><section  data-markdown><script type="text/template">
+举些栗子
+
+main.js
+```js
+const hello = require('./hello');
+hello()
+```
+
+hello.js
+
+```js
+module.exports = {
+   hello: function () {
+    console.log('hello world');
+   }
+}
+```
+
+</script></section><section  data-markdown><script type="text/template">
+
+## 异步编程
+
+</script></section><section  data-markdown><script type="text/template">
+先来写一个循环:
+```js
+const fs = require('fs')
+for(let i = 1; i < 5; i++) {
+    fs.readFile(`./files/file${i}.html`, (err, data) => {
+        if (err) throw err;
+        console.log(i);
+    });
+}
+```
+
+</script></section><section  data-markdown><script type="text/template">
+
+回调地狱
+
+```js
+ handleA(a, function(b){
+        handleB(b, function(c){ 
+            handleC(c, function(d){ 
+                handleD(d, function(e) {
+                    ...
+                });
+            });
+        });
+ });
+```
+
+</script></section><section  data-markdown><script type="text/template">
+使用Promise
+</script></section><section  data-markdown><script type="text/template">
+改进后的代码
+```js
+function promiseify(asyncFunc) {
+    return new Promise((resolve, reject) => {
+        asyncFunc((err, data) => {
+            if (err) reject(err);
+            resolve(data)
+        })
+    })
+}
+promiseify(handleA)(data)
+.then(promiseify(handleB))
+.then(promiseify(handleC))
+.then(promiseify(handleD)).then((error, data) => {
+    ...
+})
+```
+</script></section><section  data-markdown><script type="text/template">
+使用await/async
+</script></section><section  data-markdown><script type="text/template">
+改进后的代码
+
+``` js
+
+(async function(data) {
+   const a = await promiseify(handleA)(data)
+   const b = await promiseify(handleB)(a)
+   const c = await promiseify(handleC)(b)
+   const e = await promiseify(handleD)(c)
+})(data)
+
+```
+</script></section><section  data-markdown><script type="text/template">
+循环调用某些异步执行的方法，必须等待所有的结果返回后,才做下一步处理
+```
+const data = [...]
+Promise.all(data.map(() => (
+    new Promise(resove, reject) {
+       ...
+    }
+)))
+```
+</script></section><section  data-markdown><script type="text/template">
+### 异步I/O原理
+
+![image](./imgs/异步的实现.jpg)
+
+</script></section><section ><section data-markdown><script type="text/template">
+### 事件循环 
+
+- setTimeout <!-- .element: class="fragment" -->
+- setInterval <!-- .element: class="fragment" -->
+- process.nextTick <!-- .element: class="fragment" -->
+- setImmediate <!-- .element: class="fragment" -->
+
+</script></section><section data-markdown><script type="text/template">
+setTimeout/setInterval
+- 创建定时器并将其加入到内部的一个红黑树中  <!-- .element: class="fragment" -->
+- 每次事件循环都从改红黑树中迭代取出定时器  <!-- .element: class="fragment" -->
+- 取出后，检测是否超时  <!-- .element: class="fragment" -->
+- 如果超时,则生成一个事件并加入到事件循环中,随后回调函数回"立即执行"   <!-- .element: class="fragment" -->
+
+</script></section><section data-markdown><script type="text/template">
+立即将一个函数加入到事件循环中,该怎么做？
+
+``` 
+setTimeout(() => {
+    ...
+}, 0)
+``` 
+<!-- .element: class="fragment" -->
+</script></section><section data-markdown><script type="text/template">
+process.nextTick
+- 存入队列中,每一轮事件循环，会执行完当前队列中所有的回调函数 <!-- .element: class="fragment" -->
+- 属于idle观察者 <!-- .element: class="fragment" -->
+</script></section><section data-markdown><script type="text/template">
+setImmediate
+
+- 存入到链表中，每轮循环只取一个 <!-- .element: class="fragment" -->
+- 属于check观察者,在整个事件循环中优先级较低 <!-- .element: class="fragment" -->
+
+</script></section></section><section  data-markdown><script type="text/template">
+node的事件循环总览
+![image](./imgs/事件循环.png)
+
+</script></section><section  data-markdown><script type="text/template">
+
+## 事件模块
+
+node中大部分模块都继承EventEmitter的类。
+
+- on()
+- emit()
+- removeListener()
+- removeAllListenrs()
+
+</script></section><section  data-markdown><script type="text/template">
+
+继承EventEmitter
+```js
+const EventEmitter = require('events');
+const utils = require('util');
+function Finder() {
+    EventEmitter.call(this)
+}
+utils.inherits(Finder, EventEmitter);
+var finder = new Finder();
+finder.on('success', (data) => {
+    console.log(data);
+});
+finder.emit('success', 1);
+
+
+```
+</script></section><section ><section data-markdown><script type="text/template">
+
+
+## Buffer
+Buffer在node中可以看作一种数据类型，用来存储、处理二进制数据的类型。
+</script></section><section data-markdown><script type="text/template">
+- Buffer.alloc(size, fill, encoding) // 编码默认utf-8
+
+- Buffer.from(array) 
+
+- Buffer.from(buffer)
+
+- Buffer.from(arrayBuffer[, byteOffset [, length]])
+
+- Buffer.from(string[, encoding])
+
+注意: new Buffer() 已经被废弃了
+
+</script></section></section><section  data-markdown><script type="text/template">
+
+## 流
+流是一个传输的手段，可以通过管道(pipe)的方式，将数据从一段传输到另一端。
+</script></section><section ><section data-markdown><script type="text/template">
+
+</script></section><section data-markdown><script type="text/template">
+- stream.Readable 只读流  <!-- .element: class="fragment" -->
+- stream.Writeable 只写流  <!-- .element: class="fragment" -->
+- stream.Duplex 可读可写流  <!-- .element: class="fragment" -->
+- stream.Transform 对写入的数据进行操作，然后读取结果  <!-- .element: class="fragment" -->
+
+</script></section><section data-markdown><script type="text/template">
+举个例子
+
+```
+const fs = require('fs')
+const frs = fs.createReadStream('./filse/file1.html', {
+ highWaterMark: 3,
+  encoding:'utf8' 
+});
+
+frs.on('open',function () {
+    console.log('文件打开');
+});
+
+rs.on('data',function (data) {
+    console.log(data);
+});
+
+rs.on('error',function () {
+    console.log("error");
+});
+rs.on('end',function () {
+    console.log('读完了');
+});
+rs.on('close',function () {
+    console.log('文件关闭');
+});
+
+const fws = fs.createWriteStream('./filse/file2.html');
+frs.pipe(fws)
+
+```
+</script></section><section data-markdown><script type="text/template">
+管道(pipe)，类似于:
+
+```
+const ReadStream = require('stream').Readable;
+ReadStream.prototype.pipe = function (dest) {
+    this.on('data', (data)=>{
+        let flag = dest.write(data);
+        if(!flag){
+            this.pause();
+        }
+    });
+    dest.on('drain', ()=>{
+        this.resume();
+    });
+    this.on('end', ()=>{
+        dest.end();
+    });
+    dest.emit('pipe', this);
+    return dest
+}
+
+const fs = require('fs')
+const frs = fs.createReadStream('./files/file1.html');
+const fws = fs.createWriteStream('./files/file2.html');
+frs.pipe(fws)
+
+```
+
+</script></section></section><section ><section data-markdown><script type="text/template">
+## 文件模块
+
+</script></section><section data-markdown><script type="text/template">
+
+- fs.readFile(path[, options], callback)
+- fs.writeFile(file, data[, options], callback)
+- fs.copyFile(src, dest[, flags], callback)
+- fs.unlink(path, callback)
+- ...
+
+</script></section><section data-markdown><script type="text/template">
+
+fs.promises API 提供了一组备用的异步文件系统的方法，它们返回 Promise 对象而不是使用回调。
+
+</script></section><section data-markdown><script type="text/template">
+```
+const fsPromises = require('fs').promises;
+async function openAndClose() {
+  let filehandle;
+  try {
+    filehandle = await fsPromises.open('thefile.txt', 'r');
+  } finally {
+    if (filehandle !== undefined)
+      await filehandle.close();
+  }
+}
+```
+
+</script></section></section><section ><section data-markdown><script type="text/template">
+## http模块
+</script></section><section data-markdown><script type="text/template">
+- 创建HTTP服务器 <!-- .element: class="fragment" -->
+- 监听端口 <!-- .element: class="fragment" -->
+- 根据请求的url和method调用对应的逻辑 <!-- .element: class="fragment" -->
+
+</script></section><section data-markdown><script type="text/template">
+```
+const http = require('http');
+http.createServer(function (req, res) {
+    const result = handleRes(req); // 根据url,method做不同的处理
+    res.writeHead(result.status, result.header)
+    res.end(result.body)
+}).listen(8080);
+```
+
+</script></section></section><section  data-markdown><script type="text/template">
+
+## 常用node框架介绍
+
+- express <!-- .element: class="fragment" -->
+- koa <!-- .element: class="fragment" -->
+- egg <!-- .element: class="fragment" -->
+
+</script></section><section  data-markdown><script type="text/template">
+
+## ORM框架
+
+- Sequelize <!-- .element: class="fragment" -->
+- mongoose <!-- .element: class="fragment" -->
+</script></section><section  data-markdown><script type="text/template">
+## Thanks
+
+
+
+
+
+
+
+
+</script></section></div>
+    </div>
+
+    <script src="./js/reveal.js"></script>
+
+    <script>
+      function extend() {
+        var target = {};
+        for (var i = 0; i < arguments.length; i++) {
+          var source = arguments[i];
+          for (var key in source) {
+            if (source.hasOwnProperty(key)) {
+              target[key] = source[key];
+            }
+          }
+        }
+        return target;
+      }
+
+      // Optional libraries used to extend on reveal.js
+      var deps = [
+        { src: './plugin/markdown/marked.js', condition: function() { return !!document.querySelector('[data-markdown]'); } },
+        { src: './plugin/markdown/markdown.js', condition: function() { return !!document.querySelector('[data-markdown]'); } },
+        { src: './plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+        { src: './plugin/zoom-js/zoom.js', async: true },
+        { src: './plugin/notes/notes.js', async: true },
+        { src: './plugin/math/math.js', async: true }
+      ];
+
+      // default options to init reveal.js
+      var defaultOptions = {
+        controls: true,
+        progress: true,
+        history: true,
+        center: true,
+        transition: 'default', // none/fade/slide/convex/concave/zoom
+        dependencies: deps
+      };
+
+      // options from URL query string
+      var queryOptions = Reveal.getQueryHash() || {};
+
+      var options = extend(defaultOptions, {}, queryOptions);
+    </script>
+
+
+    <script>
+      Reveal.initialize(options);
+    </script>
+  </body>
+</html>
