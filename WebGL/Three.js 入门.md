@@ -13,7 +13,7 @@
 
 ###  📷  相机
 
-![Camera settings](C:\Users\skywalker512\Documents\Three.js 入门.assets\mdn-games-3d-camera-settings-1566452798733.png)
+![Camera settings](./Three.js.assets/mdn-games-3d-camera-settings-1566452798733.png)
 
 ```js
 const fov = 75; // 视野的角度
@@ -28,7 +28,7 @@ const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 
 ### 🚩 坐标
 
-![Coordinate system](C:\Users\skywalker512\Documents\Three.js 入门.assets\mdn-games-3d-coordinate-system.png)
+![Coordinate system](./Three.js.assets/mdn-games-3d-coordinate-system.png)
 
 又是一张熟悉的图，我们接下来用 Three.js 创建的物体**都会**位于坐标系**原点**。而我们创建的相机默认指向**Z轴负方向**，上方向朝向**Y轴正方向**，也就意味着我们的相机与我们创建的物体**重合了**，这肯定是不可行的，所以我们需要将相机从原点移走才能看到物体。
 
@@ -37,7 +37,7 @@ camera.position.z = 2;
 ```
 下面是我们想要达到的效果
 
-![1566482441287](C:\Users\skywalker512\Documents\Three.js 入门.assets\1566482441287.png)
+![1566482441287](./Three.js.assets/1566482441287.png)
 
 ### 🎬 场景
 
